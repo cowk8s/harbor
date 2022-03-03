@@ -1,0 +1,6 @@
+  ConfigurationResponse:
+    type: object
+    properties: 
+      hi:
+        $ref: '#/definitions/'
+        description:  

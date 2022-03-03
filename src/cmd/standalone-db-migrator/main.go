@@ -4,7 +4,10 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/cowk8s/harbor/src/common/dao"
 	"github.com/cowk8s/harbor/src/common/models"
+	"github.com/cowk8s/harbor/src/lib/log"
+	"github.com/cowk8s/harbor/src/migration"
 )
 
 // key: env var, value: default value
@@ -33,6 +36,17 @@ func main() {
 		},
 	}
 
+	log.Info("Migrating the data to latest schema...")
+	log.Infof("DB info: postgres://%s@%s:%d/%s?sslmode=%s", db.PostGreSQL.Username, db.PostGreSQL.Host,
+		db.PostGreSQL.Port, db.PostGreSQL.Database, db.PostGreSQL.SSLMode)
+
+	if err := dao.InitDatabase(db); err != nil {
+		log.Fatalf("failed to initialize database: %v", err)
+	}
+	if err := migration.MigrateDB(db); err != nil {
+		log.Fatalf("failed to migrate DB: %v", err)
+	}
+	log.Info("Migration done.  The data schema in DB is now update to date.")
 }
 
 func getAttr(k string) string {

@@ -7,7 +7,7 @@ import (
 )
 
 // Skipper defines a function to skip middleware.
-// Returning true skips processing the middleware
+// Returning true skips processing the middleware.
 type Skipper func(*http.Request) bool
 
 // MethodAndPathSkipper returns skipper which
@@ -21,5 +21,12 @@ func MethodAndPathSkipper(method string, re *regexp.Regexp) func(r *http.Request
 		}
 
 		return false
+	}
+}
+
+// NegativeSkipper returns skipper which is negative of the input skipper
+func NegativeSkipper(skipper Skipper) func(*http.Request) bool {
+	return func(r *http.Request) bool {
+		return !skipper(r)
 	}
 }

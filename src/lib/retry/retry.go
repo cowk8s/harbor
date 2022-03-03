@@ -32,15 +32,4 @@ func Abort(err error) error {
 }
 
 type Options struct {
-
-}
-
-func Retry(f func() error) error {
-	
-	timeout := time.After(7 * time.Second)
-	for {
-		select {
-			
-		}
-	}
 }

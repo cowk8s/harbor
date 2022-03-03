@@ -1,12 +1,5 @@
 package secret
 
-const (
-	// JobserviceUser is the name of jobservice user
-	JobserviceUser = "harbor-jobservice"
-	// CoreUser is the name of ui user
-	CoreUser = "harbor-core"
-)
-
 // Store the secrets and provides methods to validate secrets
 type Store struct {
 	// the key is secret
@@ -26,7 +19,7 @@ func (s *Store) IsValid(secret string) bool {
 	return len(s.GetUsername(secret)) != 0
 }
 
-// GetUsername returns the corresponding username of the secret
+// GetUsername return the corresponding the name of the secret
 func (s *Store) GetUsername(secret string) string {
 	return s.secrets[secret]
 }
