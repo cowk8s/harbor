@@ -4,6 +4,8 @@ BUILDPATH=$(CURDIR)
 MAKEPATH=$(BUILDPATH)/make
 TOOLSPATH=$(BUILDPATH)/tools
 
+CHECKENVCMD=checkenv.sh
+
 IMAGENAMESPACE=goharbor
 
 # docker parameters
@@ -46,3 +48,7 @@ endef
 gen_apis:
 	$(call prepare_docker_image,${SWAGGER_IMAGENAME},${SWAGGER_VERSION},${SWAGGER_IMAGE_BUILD_CMD})
 	$(call swagger_generate_server,api/v2.0/swagger.yaml,src/server/v2.0,harbor)
+
+
+check_environment:
+	@$(MAKEPATH)/$(CHECKENVCMD)

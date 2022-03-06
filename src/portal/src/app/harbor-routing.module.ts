@@ -9,6 +9,10 @@ const harborRoutes: Routes = [
   {
     path: 'license',
     loadChildren: () => import('./license/license.module').then(m => m.LicenseModule)
+  },
+  {
+    path: 'harbor',
+    loadChildren: () => import('./base/base.module').then(m => m.BaseModule)
   }
 ]
 

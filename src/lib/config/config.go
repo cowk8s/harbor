@@ -25,5 +25,4 @@ type Manager interface {
 	Load(ctx context.Context) error
 	Set(ctx context.Context, key string, value interface{})
 	Save(ctx context.Context) error
-	Get(ctx context.Context key string) 
 }

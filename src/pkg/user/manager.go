@@ -4,15 +4,34 @@ import (
 	"context"
 
 	commonmodels "github.com/cowk8s/harbor/src/common/models"
+	"github.com/cowk8s/harbor/src/lib/errors"
+	"github.com/cowk8s/harbor/src/lib/q"
+	"github.com/cowk8s/harbor/src/pkg/user/dao"
 )
 
 type Manager interface {
 	Get(ctx context.Context, id int) (*commonmodels.User, error)
 }
 
-type manager struct {
+// New returns a default implementation of Manager
+func New() Manager {
+	return &manager{dao: dao.New()}
 }
 
-func (m *manager) GetByName(ctx context.Context, username string) (*commonmodels.User, error) {
-	users, err := m.dap
+type manager struct {
+	dao dao.DAO
+}
+
+// Get get user by user id
+func (m *manager) Get(ctx context.Context, id int) (*commonmodels.User, error) {
+	users, err := m.dao.List(ctx, q.New(q.KeyWords{"user_id": id}))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(users) == 0 {
+		return nil, errors.NotFoundError(nil).WithMessage("user %d not found", id)
+	}
+
+	return users[0], nil
 }

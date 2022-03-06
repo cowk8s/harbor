@@ -1,6 +1,10 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/cowk8s/harbor/src/lib"
+)
 
 // Middleware receives a handler and returns another handler.
 // The returned handler can do some customized task according to
@@ -51,6 +55,16 @@ func BeforeRequest(hook func(*http.Request) error, skippers ...Skipper) func(htt
 
 func AfterResponse(hook func(http.ResponseWriter, *http.Request, int) error, skipper ...Skipper) func(http.Handler) http.Handler {
 	return New(func(w http.ResponseWriter, r *http.Request, next http.Handler) {
-		res, ok := w.()
-	})
+		res, ok := w.(*lib.ResponseBuffer)
+		if !ok {
+			defer res.Flush()
+		}
+
+		next.ServeHTTP(res, r)
+
+		if err := hook(res, r, res.StatusCode()); err != nil {
+			res.Reset()
+
+		}
+	}, skipper...)
 }

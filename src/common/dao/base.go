@@ -3,10 +3,12 @@ package dao
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/astaxie/beego/orm"
 	"github.com/cowk8s/harbor/src/common/models"
+	"github.com/cowk8s/harbor/src/lib/log"
 )
 
 const (
@@ -14,7 +16,7 @@ const (
 	NonExistUserID = 0
 )
 
-// ErrDupRows is returned
+// ErrDupRows is returned by DAO when inserting failed with error "duplicate key value violates unique constraint"
 var ErrDupRows = errors.New("sql: duplicate row in DB")
 
 // Database is an interface of different databases
@@ -38,24 +40,35 @@ func UpgradeSchema(database *models.Database) error {
 	return db.UpgradeSchema()
 }
 
+// InitDatabase registers the database
 func InitDatabase(database *models.Database) error {
 	db, err := getDatabase(database)
 	if err != nil {
 		return err
 	}
 
+	log.Infof("Registering database: %s", db.String())
 	if err := db.Register(); err != nil {
 		return err
 	}
 
+	log.Info("Register database completed")
 	return nil
 }
 
 func getDatabase(database *models.Database) (db Database, err error) {
+
 	switch database.Type {
 	case "", "postgresql":
 		db = NewPGSQL(
-
+			database.PostGreSQL.Host,
+			strconv.Itoa(database.PostGreSQL.Port),
+			database.PostGreSQL.Username,
+			database.PostGreSQL.Password,
+			database.PostGreSQL.Database,
+			database.PostGreSQL.SSLMode,
+			database.PostGreSQL.MaxIdleConns,
+			database.PostGreSQL.MaxOpenConns,
 		)
 	default:
 		err = fmt.Errorf("invalid database: %s", database.Type)
@@ -79,5 +92,30 @@ func GetOrmer() orm.Ormer {
 func ClearTable(table string) error {
 	o := GetOrmer()
 	sql := fmt.Sprintf("delete from %s where 1=1", table)
-	if table == 
+	if table == "project_member" {
+		sql = fmt.Sprintf("delete from %s where id > 1", table)
+	}
+	_, err := o.Raw(sql).Exec()
+	return err
+}
+
+// implements github.com/golang-migrate/migrate/v4.Logger
+type mLogger struct {
+	logger *log.Logger
+}
+
+func newMigrateLogger() *mLogger {
+	return &mLogger{
+		logger: log.DefaultLogger().WithDepth(5),
+	}
+}
+
+// Verbose ...
+func (l *mLogger) Verbose() bool {
+	return l.logger.GetLevel() <= log.DebugLevel
+}
+
+// Printf ...
+func (l *mLogger) Printf(format string, v ...interface{}) {
+	l.logger.Infof(format, v...)
 }

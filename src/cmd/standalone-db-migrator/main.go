@@ -4,8 +4,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/cowk8s/harbor/src/common/dao"
 	"github.com/cowk8s/harbor/src/common/models"
+
+	"github.com/cowk8s/harbor/src/common/dao"
 	"github.com/cowk8s/harbor/src/lib/log"
 	"github.com/cowk8s/harbor/src/migration"
 )
