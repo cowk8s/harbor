@@ -1,8 +1,0 @@
-  Configurations:
-    type: object
-    properties: 
-      hi:
-        type: 
-        description:  
-        x-omitempty: true
-        x-isnullable: true
