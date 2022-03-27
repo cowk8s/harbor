@@ -9,7 +9,14 @@ import (
 	"github.com/cowk8s/harbor/src/pkg/user/dao"
 )
 
+var (
+	// Mgr is the global project manager
+	Mgr = New()
+)
+
+// Manager is used for user management
 type Manager interface {
+	// Get get user by user id
 	Get(ctx context.Context, id int) (*commonmodels.User, error)
 }
 

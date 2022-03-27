@@ -1,0 +1,113 @@
+package cache
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/url"
+	"sync"
+	"time"
+
+	"github.com/cowk8s/harbor/src/lib/log"
+	"github.com/cowk8s/harbor/src/lib/retry"
+)
+
+const (
+	// Memory the cache name of memory
+	Memory = "memory"
+	// Redis the cache name of redis
+	Redis = "redis"
+	// RedisSentinel the cache name of redis sentinel
+	RedisSentinel = "redis+sentinel"
+)
+
+var (
+	// ErrNotFound error returns when the key value not found in the cache
+	ErrNotFound = errors.New("key not found")
+)
+
+// Cache cache interface
+type Cache interface {
+	// Contains returns true if key exists
+	Contains(ctx context.Context, key string) bool
+
+	// Delete delete item from cache by key
+	Delete(ctx context.Context, key string) error
+
+	// Fetch retrieve the cached key value
+	Fetch(ctx context.Context, key string, value interface{}) error
+
+	// Ping ping the cache
+	Ping(ctx context.Context) error
+
+	// Save cache the value by key
+	Save(ctx context.Context, key string, value interface{}, expiration ...time.Duration) error
+}
+
+var (
+	factories   = map[string]func(opts Options) (Cache, error){}
+	factoriesMu sync.RWMutex
+)
+
+// Register register cache factory for type
+func Register(typ string, factory func(opts Options) (Cache, error)) {
+	factoriesMu.Lock()
+	defer factoriesMu.Unlock()
+
+	factories[typ] = factory
+}
+
+// New returns cache from addr
+func New(typ string, opt ...Option) (Cache, error) {
+	opts := newOptions(opt...)
+	opts.Codec = codec // use the default codec for the cache
+
+	factoriesMu.Lock()
+	defer factoriesMu.Unlock()
+
+	factory, ok := factories[typ]
+	if !ok {
+		return nil, fmt.Errorf("cache type %s not support", typ)
+	}
+
+	return factory(opts)
+}
+
+var (
+	cache Cache
+)
+
+// Initialize initialize the default cache from the addr
+func Initialize(typ, addr string) error {
+	c, err := New(typ, Address(addr), Prefix("cache:"))
+	if err != nil {
+		return err
+	}
+
+	redactedAddr := addr
+	if u, err := url.Parse(addr); err == nil {
+		redactedAddr = redacted(u)
+	}
+
+	options := []retry.Option{
+		retry.InitialInterval(time.Millisecond * 500),
+		retry.MaxInterval(time.Second * 10),
+		retry.Timeout(time.Minute),
+		retry.Callback(func(err error, sleep time.Duration) {
+			log.Errorf("failed to ping %s, retry after %s : %v", redactedAddr, sleep, err)
+		}),
+	}
+
+	if err := retry.Retry(func() error { return c.Ping(context.TODO()) }, options...); err != nil {
+		return err
+	}
+
+	cache = c
+
+	return nil
+}
+
+// Default returns the default cache
+func Default() Cache {
+	return cache
+}

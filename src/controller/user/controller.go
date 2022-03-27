@@ -8,10 +8,16 @@ import (
 )
 
 var (
+	// Ctl is a global user controller instance
 	Ctl = NewController()
 )
 
+// Controller provides functions to support API/middleware for user management and query
 type Controller interface {
+	// SetSysAdmin ...
+	SetSysAdmin(ctx context.Context, id int, adminFlag bool) error
+	// VerifyPassword
+	VerifyPassword(ctx context.Context, usernameOrEmail string, password string) (bool, error)
 }
 
 func NewController() Controller {
