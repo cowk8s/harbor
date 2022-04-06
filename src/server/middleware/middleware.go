@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/cowk8s/harbor/src/lib"
+	lib_http "github.com/cowk8s/harbor/src/lib/http"
 )
 
 // Middleware receives a handler and returns another handler.
@@ -28,6 +29,7 @@ func WithMiddlewares(handler http.Handler, middlewares ...Middleware) http.Handl
 	return Chain(middlewares...)(handler)
 }
 
+// New make a middleware from fn which type is func(w http.ResponseWriter, r *http.Request, next http.Handler)
 func New(fn func(http.ResponseWriter, *http.Request, http.Handler), skippers ...Skipper) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -43,20 +45,25 @@ func New(fn func(http.ResponseWriter, *http.Request, http.Handler), skippers ...
 	}
 }
 
+// BeforeRequest make a middleware which will call hook before the next handler
 func BeforeRequest(hook func(*http.Request) error, skippers ...Skipper) func(http.Handler) http.Handler {
 	return New(func(w http.ResponseWriter, r *http.Request, next http.Handler) {
 		if err := hook(r); err != nil {
+			lib_http.SendError(w, err)
 			return
 		}
 
 		next.ServeHTTP(w, r)
+
 	}, skippers...)
 }
 
-func AfterResponse(hook func(http.ResponseWriter, *http.Request, int) error, skipper ...Skipper) func(http.Handler) http.Handler {
+// AfterResponse make a middleware which will call hook after the next handler
+func AfterResponse(hook func(http.ResponseWriter, *http.Request, int) error, skippers ...Skipper) func(http.Handler) http.Handler {
 	return New(func(w http.ResponseWriter, r *http.Request, next http.Handler) {
 		res, ok := w.(*lib.ResponseBuffer)
 		if !ok {
+			res = lib.NewResponseBuffer(w)
 			defer res.Flush()
 		}
 
@@ -64,7 +71,7 @@ func AfterResponse(hook func(http.ResponseWriter, *http.Request, int) error, ski
 
 		if err := hook(res, r, res.StatusCode()); err != nil {
 			res.Reset()
-
+			lib_http.SendError(res, err)
 		}
-	}, skipper...)
+	}, skippers...)
 }

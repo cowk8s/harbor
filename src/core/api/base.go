@@ -5,11 +5,15 @@ import (
 )
 
 const (
-	userSessionKey = "user"
+	yamlFileContentType = "application/x-yaml"
+	userSessionKey      = "user"
 )
 
+// BaseController ...
 type BaseController struct {
 	api.BaseAPI
+	// SecurityCtx is the security context used to authN &authZ
+	SecurityCtx
 }
 
 func (b *BaseController) Prepare() {

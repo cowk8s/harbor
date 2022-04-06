@@ -2,11 +2,38 @@
 SHELL := /bin/bash
 BUILDPATH=$(CURDIR)
 MAKEPATH=$(BUILDPATH)/make
+MAKE_PREPARE_PATH=$(MAKEPATH)/photon/prepare
+SRCPATH=./src
 TOOLSPATH=$(BUILDPATH)/tools
-
+CORE_PATH=$(BUILDPATH)/src/core
+PORTAL_PATH=$(BUILDPATH)/src/portal
 CHECKENVCMD=checkenv.sh
 
-IMAGENAMESPACE=goharbor
+# parameters
+# default is true
+BUILD_PG96=true
+REGISTRYSERVER=
+REGISTRYPROJECTNAME=goharbor
+DEVFLAG=true
+NOTARYFLAG=false
+TRIVYFLAG=false
+HTTPPROXY=
+BUILDBIN=false
+NPM_REGISTRY=https://registry.npmjs.org
+# enable/disable chart repo supporting
+CHARTFLAG=false
+BUILDTARGET=build
+GEN_TLS=
+
+# version prepare
+# for docker image tag
+VERSIONTAG=dev
+
+PREPARE_VERSION_NAME=versions
+
+define VERSIONS_FOR_PREPARE
+VERSION_TAG: $(VERSIONTAG)
+endef
 
 # docker parameters
 DOCKERCMD=$(shell which docker)
@@ -49,6 +76,19 @@ gen_apis:
 	$(call prepare_docker_image,${SWAGGER_IMAGENAME},${SWAGGER_VERSION},${SWAGGER_IMAGE_BUILD_CMD})
 	$(call swagger_generate_server,api/v2.0/swagger.yaml,src/server/v2.0,harbor)
 
+export VERSIONS_FOR_PREPARE
+versions_prepare:
+	@echo "$$VERSIONS_FOR_PREPARE" > $(MAKE_PREPARE_PATH)/$(PREPARE_VERSION_NAME)
 
 check_environment:
 	@$(MAKEPATH)/$(CHECKENVCMD)
+
+compile_core: gen_apis
+	@echo "compiling binary for core (golang image)..."
+	@echo $(GOBUILDPATHINCONTAINER)
+	@$(DOCKERCMD) run --rm -v $(BUILDPATH):$(GOBUILDPATHINCONTAINER) -w
+	@echo "Done."
+
+compile: check_environment versions_prepare
+
+install: compile
