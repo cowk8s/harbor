@@ -19,3 +19,5 @@ type CVEAllowlistItem struct {
 func (c *CVEAllowlist) TableName() string {
 	return "cve_allowList"
 }
+
+func NewCVESetpt(cveSets ...CVESet) CVEAllowlist
