@@ -6,7 +6,7 @@ import (
 
 var _ model.Accessory = (*Default)(nil)
 
-// Default default model with TypeNode and RefNone
+// Default default model with TypeNone and RefNone
 type Default struct {
 	Data model.AccessoryData
 }
@@ -21,15 +21,17 @@ func (a *Default) IsSoft() bool {
 	return false
 }
 
+// IsHard ...
 func (a *Default) IsHard() bool {
 	return false
 }
 
-// Display ....
+// Display ...
 func (a *Default) Display() bool {
 	return false
 }
 
+// GetData ...
 func (a *Default) GetData() model.AccessoryData {
 	return a.Data
 }

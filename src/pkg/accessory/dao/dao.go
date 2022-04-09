@@ -2,27 +2,28 @@ package dao
 
 import (
 	"context"
-
+	"github.com/cowk8s/harbor/src/lib/errors"
 	"github.com/cowk8s/harbor/src/lib/orm"
 	"github.com/cowk8s/harbor/src/lib/q"
 )
 
-// DAO is the data aacess object for accessory
+// DAO is the data access object for accessory
 type DAO interface {
 	// Count returns the total count of accessory according to the query
 	Count(ctx context.Context, query *q.Query) (total int64, err error)
-
+	// List accessory according to the query
 	List(ctx context.Context, query *q.Query) (accs []*Accessory, err error)
-
+	// Get the accessory specified by ID
 	Get(ctx context.Context, id int64) (accessory *Accessory, err error)
-
+	// Create the accessory
 	Create(ctx context.Context, accessory *Accessory) (id int64, err error)
-
+	// Delete the accessory specified by ID
 	Delete(ctx context.Context, id int64) (err error)
-
-	DeleteAccessories(ctx context.Context, query *q.Query) (int64, int64)
+	// DeleteAccessories deletes accessories by query
+	DeleteAccessories(ctx context.Context, query *q.Query) (int64, error)
 }
 
+// New returns an instance of the default DAO
 func New() DAO {
 	return &dao{}
 }
@@ -34,7 +35,7 @@ func (d *dao) Count(ctx context.Context, query *q.Query) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return qsv.Count()
+	return qs.Count()
 }
 
 func (d *dao) List(ctx context.Context, query *q.Query) ([]*Accessory, error) {
@@ -66,9 +67,45 @@ func (d *dao) Get(ctx context.Context, id int64) (*Accessory, error) {
 	return acc, nil
 }
 
-func (d *dao) Create(ctx context.Context, acc *Accessory) (int64. error) package eror
-
-func main() {{
-
+func (d *dao) Create(ctx context.Context, acc *Accessory) (int64, error) {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	id, err := ormer.Insert(acc)
+	if err != nil {
+		if e := orm.AsConflictError(err, "accessory %s already exists under the artifact %d",
+			acc.Digest, acc.SubjectArtifactID); e != nil {
+			err = e
+		} else if e := orm.AsForeignKeyError(err, "the accessory %s tries to attach to a non existing artifact %d",
+			acc.Digest, acc.SubjectArtifactID); e != nil {
+			err = e
+		}
+	}
+	return id, err
 }
+
+func (d *dao) Delete(ctx context.Context, id int64) error {
+	ormer, err := orm.FromContext(ctx)
+	if err != nil {
+		return err
+	}
+	n, err := ormer.Delete(&Accessory{
+		ID: id,
+	})
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return errors.NotFoundError(nil).WithMessage("accessory %d not found", id)
+	}
+	return nil
+}
+
+func (d *dao) DeleteAccessories(ctx context.Context, query *q.Query) (int64, error) {
+	qs, err := orm.QuerySetter(ctx, &Accessory{}, query)
+	if err != nil {
+		return 0, err
+	}
+	return qs.Delete()
 }

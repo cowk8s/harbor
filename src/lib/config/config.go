@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/cowk8s/harbor/src/common"
+	"github.com/cowk8s/harbor/src/lib/log"
 )
 
 const (
@@ -25,4 +26,13 @@ type Manager interface {
 	Load(ctx context.Context) error
 	Set(ctx context.Context, key string, value interface{})
 	Save(ctx context.Context) error
+}
+
+// DefaultMgr get default config manager
+func DefaultMgr() Manager {
+	manager, err := GetManager(DefaultCfgManager)
+	if err != nil {
+		log.Error("failed to get config manager")
+	}
+	return manager
 }

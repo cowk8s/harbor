@@ -1,9 +1,8 @@
 package dao
 
 import (
-	"time"
-
 	"github.com/astaxie/beego/orm"
+	"time"
 )
 
 func init() {

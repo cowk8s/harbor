@@ -3,10 +3,9 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cowk8s/harbor/src/lib/errors"
 	"sync"
 	"time"
-
-	"github.com/cowk8s/harbor/src/lib/errors"
 )
 
 const (

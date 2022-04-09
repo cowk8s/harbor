@@ -28,4 +28,15 @@ func registerRoutes() {
 	beego.Router(common.AuthProxyRediretPath, &controllers.AuthProxyController{}, "get:HandleRedirect")
 
 	beego.Router("/service/token", &token.Handler{})
+
+	// chart repository services
+	if config.WithChartMuseum() {
+		chartRepositoryAPIType := &api.ChartRepositoryAPI{}
+		beego.Router("/chartrepo/:repo/index.yaml", chartRepositoryAPIType, "get:GetIndexByRepo")
+		beego.Router("/chartrepo/index.yaml", chartRepositoryAPIType, "get:GetIndex")
+		beego.Router("/chartrepo/:repo/charts/:filename", chartRepositoryAPIType, "get:DownloadChart")
+	}
+
+	// Error pages
+	beego.ErrorController(&controllers.ErrorController{})
 }
