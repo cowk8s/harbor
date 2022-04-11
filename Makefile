@@ -38,7 +38,12 @@ endef
 # docker parameters
 DOCKERCMD=$(shell which docker)
 DOCKERBUILD=$(DOCKERCMD) build
+DOCKERRMIMAGE=$(DOCKERCMD) rmi
+DOCKERPULL=$(DOCKERCMD) pull
 DOCKERIMAGES=$(DOCKERCMD) images
+DOCKERSAVE=$(DOCKERCMD) save
+DOCKERCOMPOSECMD=$(shell which docker-compose)
+DOCKERTAG=$(DOCKERCMD) tag
 
 # go parameters
 GOCMD=$(shell which go)
@@ -50,6 +55,22 @@ GODEP=$(GOTEST) -i
 GOFMT=gofmt -w
 GOBUILDIMAGE=golang:1.17.7
 GOBUILDPATHINCONTAINER=/harbor
+
+# go build
+PKG_PATH=github.com/goharbor/harbor/src/pkg
+GITCOMMIT := $(shell git rev-parse --short=8 HEAD)
+RELEASEVERSION := $(shell cat VERSION)
+GOFLAGS=
+GOTAGS=$(if $(GOBUILDTAGS),-tags "$(GOBUILDTAGS)",)
+GOLDFLAGS=$(if $(GOBUILDLDFLAGS),--ldflags "-w -s $(GOBUILDLDFLAGS)",)
+CORE_LDFLAGS=-X $(PKG_PATH)/version.GitCommit=$(GITCOMMIT) -X $(PKG_PATH)/version.ReleaseVersion=$(RELEASEVERSION)
+ifneq ($(GOBUILDLDFLAGS),)
+	CORE_LDFLAGS += $(GOBUILDLDFLAGS)
+endif
+
+# go build command
+GOIMAGEBUILDCMD=/usr/local/go/bin/go build -mod vendor
+
 
 RUNCONTAINER=$(DOCKERCMD) run --rm -u $(shell id -u):$(shell id -g) -v $(BUILDPATH):$(BUILDPATH) -w $(BUILDPATH)
 
@@ -92,3 +113,27 @@ compile_core: gen_apis
 compile: check_environment versions_prepare
 
 install: compile
+
+cleanconfig:
+	@echo "clean generated config files"
+	rm -f $(BUILDPATH)/make/photon/prepare/versions
+	rm -f $(BUILDPATH)/UIVERSION
+	rm -rf $(BUILDPATH)/make/common
+	rm -rf $(BUILDPATH)/harborclient
+	rm -rf $(BUILDPATH)/src/portal/dist
+	rm -rf $(BUILDPATH)/src/portal/lib/dist
+	rm -f $(BUILDPATH)/src/portal/proxy.config.json
+
+.PHONY: cleanall
+cleanall: cleanbinary cleanimage cleanbaseimage cleandockercomposefile cleanconfig cleanpackage
+
+clean:
+	@echo "  make cleanall:		remove binary, Harbor images, specific version docker-compose"
+	@echo "		file, specific version tag, online and offline install package"
+	@echo "  make cleanbinary:		remove core and jobservice binary"
+	@echo "  make cleanbaseimage:		remove base image of Harbor images"
+	@echo "  make cleanimage:		remove Harbor images"
+	@echo "  make cleandockercomposefile:	remove specific version docker-compose"
+	@echo "  make cleanpackage:		remove online and offline install package"
+
+all: install

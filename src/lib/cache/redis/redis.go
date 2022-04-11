@@ -2,15 +2,16 @@ package redis
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
+	"time"
 
-	"github.com/cowk8s/harbor/src/lib/cache"
 	"github.com/go-redis/redis/v8"
+	"github.com/cowk8s/harbor/src/lib/cache"
+	"github.com/cowk8s/harbor/src/lib/errors"
 )
 
-var _ cache.Cache = (*Ca)
+var _ cache.Cache = (*Cache)(nil)
 
 // Cache redis cache
 type Cache struct {
@@ -50,6 +51,29 @@ func (c *Cache) Fetch(ctx context.Context, key string, value interface{}) error 
 	return nil
 }
 
+// Ping ping the cache
+func (c *Cache) Ping(ctx context.Context) error {
+	return c.Client.Ping(ctx).Err()
+}
+
+// Save cache the value by key
+func (c *Cache) Save(ctx context.Context, key string, value interface{}, expiration ...time.Duration) error {
+	data, err := c.opts.Codec.Encode(value)
+	if err != nil {
+		return errors.Errorf("failed to encode value, key %s, error: %v", key, err)
+	}
+
+	var exp time.Duration
+	if len(expiration) > 0 {
+		exp = expiration[0]
+	} else if c.opts.Expiration > 0 {
+		exp = c.opts.Expiration
+	}
+
+	return c.Client.Set(ctx, c.opts.Key(key), data, exp).Err()
+}
+
+// New returns redis cache
 func New(opts cache.Options) (cache.Cache, error) {
 	if opts.Address == "" {
 		opts.Address = "redis://localhost:6379/0"
@@ -78,6 +102,24 @@ func New(opts cache.Options) (cache.Cache, error) {
 
 	var client *redis.Client
 
+	// default options in go-redis, also support change by provide parameters
+	// from redis url.
+	// DEFAULT VALUES
+	/*
+		OPTION  	       |  		QUERY		  |	  DEFAULT
+		----------------------------------------------------------------------
+		DialTimeout        | dial_timeout         | 5 * time.Second
+		PoolSize           | pool_size            | 10 * runtime.GOMAXPROCS(0)
+		ReadTimeout        | read_timeout         | 3 * time.Second
+		WriteTimeout       | write_timeout        | ReadTimeout
+		PoolTimeout        | pool_timeout         | ReadTimeout + time.Second
+		IdleTimeout        | idle_timeout         | 5 * time.Minute
+		IdleCheckFrequency | idle_check_frequency | time.Minute
+		MaxRetries         | max_retries          | 3
+		MinRetryBackoff    | min_retry_backoff    | 8 * time.Millisecond
+		MaxRetryBackoff    | max_retry_backoff    | 512 * time.Millisecond
+	*/
+
 	switch u.Scheme {
 	case cache.Redis:
 		rdbOpts, err := redis.ParseURL(u.String())
@@ -87,8 +129,17 @@ func New(opts cache.Options) (cache.Cache, error) {
 
 		client = redis.NewClient(rdbOpts)
 	case cache.RedisSentinel:
-		failoverOpts, err := 
+		failoverOpts, err := ParseSentinelURL(u.String())
+		if err != nil {
+			return nil, err
+		}
+
+		client = redis.NewFailoverClient(failoverOpts)
+	default:
+		return nil, errors.Errorf("redis: invalid URL scheme: %s", u.Scheme)
 	}
+
+	return &Cache{opts: &opts, Client: client}, nil
 }
 
 func init() {
