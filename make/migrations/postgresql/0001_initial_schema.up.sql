@@ -81,13 +81,95 @@ insert into project (owner_id, name, creation_time, update_time) values
 (1, 'library', NOW(), NOW());
 
 create table project_member (
-  
-)
+ id SERIAL NOT NULL,
+ project_id int NOT NULL,
+ entity_id int NOT NULL,
+ /*
+ entity_type indicates the type of member,
+ u for user, g for user group
+ */
+ entity_type char(1) NOT NULL,
+ role int NOT NULL,
+ creation_time timestamp default CURRENT_TIMESTAMP,
+ update_time timestamp default CURRENT_TIMESTAMP,
+ PRIMARY KEY (id),
+ CONSTRAINT unique_project_entity_type UNIQUE (project_id, entity_id, entity_type)
+);
 
-insert into role (role_code, name) values 
-('MDRWS', 'projectAdmin'),
-('RWS', 'developer'),
-('RS', 'guest');
+CREATE TRIGGER project_member_update_time_at_modtime BEFORE UPDATE ON project_member FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column(); 
+
+insert into project_member (project_id, entity_id, role, entity_type) values
+(1, 1, 1, 'u');
+
+create table project_metadata (
+  id SERIAL NOT NULL,
+  project_id int NOT NULL,
+  name varchar(255) NOT NULL,
+  value varchar(255),
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  deleted boolean DEFAULT false NOT NULL,
+  PRIMARY KEY (id),
+  CONSTRAINT unique_project_id_and_name UNIQUE (project_id,name),
+  FOREIGN KEY (project_id) REFERENCES project(project_id)
+);
+
+CREATE TRIGGER project_metadata_update_time_at_modtime BEFORE UPDATE ON project_metadata FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+insert into project_metadata (project_id, name, value, creation_time, update_time, deleted) values
+(1, 'public', 'true', NOW(), NOW(), false);
+
+create table user_group (
+  id SERIAL NOT NULL,
+  group_name varchar(255) NOT NULL,
+  group_type smallint default 0,
+  ldap_group_dn varchar(512) NOT NULL,
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+
+CREATE TRIGGER user_group_update_time_at_modtime BEFORE UPDATE ON user_group FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+create table access_log (
+  log_id SERIAL NOT NULL,
+  username varchar (255) NOT NULL,
+  project_id int NOT NULL,
+  repo_name varchar (255),
+  repo_tag varchar (128),
+  GUID varchar(64),
+  operation varchar(20) NOT NULL,
+  op_time timestamp default CURRENT_TIMESTAMP,
+  primary key (log_id)
+);
+
+CREATE INDEX pid_optime ON access_log (project_id, op_time);
+
+create table repository (
+  repository_id SERIAL NOT NULL,
+  name varchar (255) NOT NULL,
+  project_id int NOT NULL,
+  description text,
+  pull_count int DEFAULT 0 NOT NULL,
+  star_count int DEFAULT 0 NOT NULL,
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  primary key (repository_id),
+  UNIQUE(name)
+);
+
+CREATE TRIGGER repository_update_time_at_modtime BEFORE UPDATE ON repository FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+
+
+create table properties (
+ id SERIAL NOT NULL,
+ k varchar(64) NOT NULL,
+ v varchar(128) NOT NULL,
+ PRIMARY KEY(id),
+ UNIQUE (k)
+ );
+
 
 create table admin_job (
  id SERIAL NOT NULL,

@@ -1,0 +1,32 @@
+<div>
+    <form #newUserFrom="ngForm" class="clr-form clr-form-horizontal">
+        <div class="clr-form-control">
+            <label>{{'PROFILE.USER_NAME' | translate}}</label>
+            <div>
+                <div class="clr-input-wrapper">
+                    <input>
+                    <clr-icon></clr-icon>
+                    <span></span>
+                </div>
+                <clr-control-error>
+                    {{usernameTooltip | translate}}
+                </clr-control-error>
+            </div>
+        </div>
+        <div class="clr-form-control">
+            <label>{{'PROFILE.EMAIL' | translate}}</label>
+            <div>
+                <div>
+                    <input>
+                    <clr-icon></clr-icon>
+                    <span></span>
+                    <clr-control-helper></clr-control-helper>
+                    <clr-control-error>
+
+                    </clr-control-error>
+                </div>
+            </div>
+        </div>
+        
+    </form>
+</div>

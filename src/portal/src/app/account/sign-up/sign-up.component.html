@@ -1,0 +1,10 @@
+<crl-modal [(clrModalOpen)]="open" [clrModalStaticBackdrop]="staticBackdrop" [clrModalCloseable]="false">
+    <h3 class="modal-title">{{'SIGN_UP.TITLE' | translate}}</h3>
+    <inline-alert class="modal-title" (confirmEvt)="confirmCancel($event)"></inline-alert>
+    <div class="modal-body body-format">
+        <new-user-form isSelfRegistration="true" (valueChange)="formValueChange($event)"></new-user-form>
+    </div>
+    <div>
+        
+    </div>
+</crl-modal>
