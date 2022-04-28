@@ -5,23 +5,20 @@ import (
 	"time"
 )
 
-var defaultTimeFormat = time.RFC3339 // 2006-01-02T15:04:05Z07:00
+var defaultTimeFormat = time.RFC3339
 
-// TextFormatter represents a kind of formatter that formats the logs as plain text
 type TextFormatter struct {
 	timeFormat string
 }
 
-// NewTextFormatter returns a TextFormatter, the format of time is time.RFC3339
 func NewTextFormatter() *TextFormatter {
 	return &TextFormatter{
 		timeFormat: defaultTimeFormat,
 	}
 }
 
-// Format formats the logs as "time [level] line message"
 func (t *TextFormatter) Format(r *Record) (b []byte, err error) {
-	s := fmt.Sprintf("%s [%s] ", r.Time.Format(t.timeFormat), r.Lvl.string())
+	s := fmt.Sprintf("%s", r.Time.Format(t.timeFormat))
 
 	if len(r.Line) != 0 {
 		s = s + r.Line + " "
