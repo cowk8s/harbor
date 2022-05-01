@@ -3,9 +3,14 @@ SHELL := /bin/bash
 BUILDPATH=$(CURDIR)
 
 TOOLSPATH=$(BUILDPATH)/tools
+PORTAL_PATH=$(BUILDPATH)/src/portal
+
+
 
 # version prepare
 # for docker image tag
+VERSIONTAG=dev
+BUILDBASETARGET=portal
 IMAGENAMESPACE=goharbor
 
 # docker parameters
@@ -15,6 +20,12 @@ DOCKERIMAGES=$(DOCKERCMD) images
 
 # go parameters
 GOBUILDIMAGE=golang:1.17.7
+
+# docker image name
+DOCKERIMAGENAME_PORTAL=$(IMAGENAMESPACE)/harbor-portal
+
+# cmds
+DOCKERSAVE_PARA=$(DOCKERIMAGENAME_PORTAL):$(VERSIONTAG)
 
 RUNCONTAINER=$(DOCKERCMD) run --rm -u $(shell id -u):$(shell id -g) -v $(BUILDPATH):$(BUILDPATH) -w $(BUILDPATH)
 
@@ -46,6 +57,13 @@ endef
 gen_apis:
 	$(call prepare_docker_image,${SWAGGER_IMAGENAME},${SWAGGER_VERSION},${SWAGGER_IMAGE_BUILD_CMD})
 	$(call swagger_generate_server,api/v2.0/swagger.yaml,src/server/v2.0,harbor)
+
+build_base_docker:
+	@for name in $(BUILDBASETARGET); do \
+		echo $$name ; \
+		sleep 30 ; \
+		
+		$(DOCKERBUILD) --build-arg BUILD
 
 clean:
 	@echo "  make cleanall:		remove binary, Harbor images, specific version docker-compose"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/astaxie/beego"
+	"github.com/cowk8s/harbor/src/core/middlewares"
 	"github.com/cowk8s/harbor/src/lib/config"
 	"github.com/cowk8s/harbor/src/lib/log"
 	"github.com/cowk8s/harbor/src/server"
@@ -16,5 +17,5 @@ func main() {
 
 	server.RegisterRoutes()
 
-	beego.Run()
+	beego.RunWithMiddleWares("", middlewares.Middlewares()...)
 }
