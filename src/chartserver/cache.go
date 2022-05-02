@@ -1,14 +1,10 @@
 package chartserver
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"errors"
 	"math"
 	"time"
 
 	beego_cache "github.com/astaxie/beego/cache"
-	hlog "github.com/cowk8s/harbor/src/lib/log"
 
 	// Enable redis cache adaptor
 	_ "github.com/astaxie/beego/cache/redis"
@@ -38,4 +34,16 @@ type ChartCache struct {
 	isEnabled bool
 }
 
+// Initialize the cache driver based on the config
+func initCacheDriver(cacheConfig *ChartCacheConfig) beego_cache.Cache {
+	switch cacheConfig.DriverType {
+	case cacheDriverMem:
 
+	}
+}
+
+// backoff: fast->slow->fast
+func backoff(count int) int {
+	f := 5 - math.Abs((float64)(count)-5)
+	return (int)(math.Pow(2, f))
+}

@@ -18,14 +18,27 @@ type Controller interface {
 	SetSysAdmin(ctx context.Context, id int, adminFlag bool) error
 	// VerifyPassword
 	VerifyPassword(ctx context.Context, usernameOrEmail string, password string) (bool, error)
+	// Get ...
+	Get(ctx context.Context, id int, opt *Option) (*commonmodels.User, error)
+	// GetByName gets the user model by username, it only supports getting the basic and does not support opt
+	GetByName(ctx context.Context, username string) (*commonmodels.User, error)
 }
 
 func NewController() Controller {
 	return &controller{}
 }
 
+// Option  option for getting User info
+type Option struct {
+	WithOIDCInfo bool
+}
+
 type controller struct {
 	mgr user.Manager
+}
+
+func (c *controller) GetByName(ctx context.Context, username string) (*commonmodels.User, error) {
+	return c.mgr.GetByName(ctx, username)
 }
 
 func (c *controller) Get(ctx context.Context, id int) (*commonmodels.User, error) {

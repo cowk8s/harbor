@@ -7,6 +7,7 @@ require github.com/astaxie/beego v1.12.3
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
+	github.com/Unknwon/goconfig v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
@@ -59,6 +60,8 @@ require (
 )
 
 require (
+	github.com/beego/beego v1.12.8
+	github.com/beego/i18n v0.0.0-20161101132742-e9308947f407
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/docker/distribution v2.8.0+incompatible
@@ -66,6 +69,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.4.0
 	github.com/golang-migrate/migrate/v4 v4.15.1
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/jackc/pgconn v1.11.0

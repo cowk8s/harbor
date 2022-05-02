@@ -160,7 +160,101 @@ create table repository (
 
 CREATE TRIGGER repository_update_time_at_modtime BEFORE UPDATE ON repository FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
 
+create table replication_policy (
+  id SERIAL NOT NULL,
+  name varchar(256),
+  project_id int NOT NULL,
+  target_id int NOT NULL,
+  
+)
 
+create table replication_target (
+  id SERIAL NOT NULL,
+  name varchar(64),
+  url varchar(64),
+  username varchar(255),
+  password varchar(128),
+  target_type SMALLINT NOT NULL DEFAULT 0,
+  insecure boolean NOT NULL DEFAULT false,
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+
+CREATE TRIGGER replication_target_update_time_at_modtime BEFORE UPDATE ON replication_target FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+create table replication_job (
+  id SERIAL NOT NULL,
+  status varchar(64) NOT NULL,
+  policy_id int NOT NULL,
+  repository varchar(256) NOT NULL,
+  operation varchar(64) NOT NULL,
+  tags varchar(16384)
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+
+CREATE INDEX policy ON replication_job (policy_id);
+CREATE INDEX poid_update ON replication_job (policy_id, update_time);
+CREATE INDEX poid_status ON replication_job (policy_id, status);
+
+CREATE TRIGGER replication_job_update_time_at_modtime BEFORE UPDATE ON replication_job FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+create table replication_immediate_trigger (
+  id SERIAL NOT NULL,
+  policy_id int NOT NULL,
+  namespace varchar(256) NOT NULL,
+  on_push boolean NOT NULL DEFAULT false,
+  on_deletion boolean NOT NULL DEFAULT false,
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+)
+
+CREATE TRIGGER replication_immediate_trigger_update_time_at_modtime BEFORE UPDATE ON replication_immediate_trigger FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+create table img_scan_job (
+  id SERIAL NOT NULL,
+  status varchar(64) NOT NULL,
+  repository varchar(256) NOT NULL,
+  tag varchar(128) NOT NULL,
+  digest varchar(128),
+  job_uuid varchar(64),
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  PRIMARY KEY(id)
+);
+
+CREATE INDEX idx_status ON img_scan_job (status);
+CREATE INDEX idx_digest ON img_scan_job (digest);
+CREATE INDEX idx_uuid ON img_scan_job (job_uuid);
+CREATE INDEX idx_repository_tag ON img_scan_job (repository,tag);
+
+CREATE TRIGGER img_scan_job_update_at_modtime BEFORE UPDATE ON img_scan_job FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+create table img_scan_overview (
+  id SERIAL NOT NULL,
+  image_digest varchar(128) NOT NULL,
+  scan_job_id int NOT NULL,
+  severity int NOT NULL default 0,
+  components_overview varchar(2048),
+  details_key varchar(128),
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  PRIMARY KEY(id),
+  UNIQUE(image_digest)
+);
+
+CREATE TRIGGER img_scan_overview_update_time_at_modtime BEFORE UPDATE ON img_scan_overview FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column()
+
+create table clair_vuln_timestamp (
+  id SERIAL NOT NULL,
+  namespace varchar(128) NOT NULL,
+  last_update timestamp NOT NULL,
+  PRIMARY KEY(id),
+  UNIQUE(namespace)
+)
 
 create table properties (
  id SERIAL NOT NULL,
@@ -170,6 +264,39 @@ create table properties (
  UNIQUE (k)
  );
 
+create table harbor_label (
+  id SERIAL NOT NULL,
+  name varchar(128) NOT NULL,
+  description text,
+  color varchar(16),
+
+  level char(1) NOT NULL,
+  scope char(1) NOT NULL,
+  project_id int,
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  deleted boolean DEFAULT false NOT NULL,
+  PRIMARY KEY(id)
+  CONSTRAINT unique_label UNIQUE (name, scope, project_id)
+);
+
+CREATE TRIGGER harbor_label_update_time_at_modtime BEFORE UPDATE ON harbor_label EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
+
+create table harbor_resource_label (
+  id SERIAL NOT NULL,
+  label_id int NOT NULL,
+
+  resource_id int,
+  resource_name varchar(256),
+
+  resource_type char(1) NOT NULL,
+  creation_time timestamp default CURRENT_TIMESTAMP,
+  update_time timestamp default CURRENT_TIMESTAMP,
+  PRIMARY KEY(id),
+  CONSTRAINT unique_label_resource UNIQUE (label_id, resource_id, resource_name, resource_type)
+)
+
+CREATE TRIGGER harbor_resource_label_update_time_at_modtime BEFORE UPDATE ON harbor_resource_label FOR EACH ROW EXECUTE PROCEDURE update_update_time_at_column();
 
 create table admin_job (
  id SERIAL NOT NULL,

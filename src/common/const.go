@@ -1,8 +1,22 @@
 package common
 
+type contextKey string
+
+// const variables
 const (
-	DBCfgManager = "db_cfg_manager"
-	OIDCAuth     = "oidc_auth"
+	DBAuth              = "db_auth"
+	LDAPAuth            = "ldap_auth"
+	UAAAuth             = "uaa_auth"
+	HTTPAuth            = "http_auth"
+	OIDCAuth            = "oidc_auth"
+	DBCfgManager        = "db_cfg_manager"
+	InMemoryCfgManager  = "in_memory_manager"
+	RestCfgManager      = "rest_config_manager"
+	ProCrtRestrEveryone = "everyone"
+	ProCrtRestrAdmOnly  = "adminonly"
+	LDAPScopeBase       = 0
+	LDAPScopeOnelevel   = 1
+	LDAPScopeSubtree    = 2
 
 	OIDCName               = "oidc_name"
 	OIDCEndpoint           = "oidc_endpoint"

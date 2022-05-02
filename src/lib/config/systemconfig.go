@@ -34,8 +34,13 @@ func WithChartMuseum() bool {
 	return DefaultMgr().Get(backgroundCtx, common.AdminInitialPassword).GetString(), nil
 }
 
+// ExtEndpoint returns the external URL of Harbor: protocol://host:port
+func ExtEndpoint() (string, error) {
+	return
+}
+
 // Database returns database settings
 func Database() (*models.Database, error) {
 	database := &models.Database{}
-	
+
 }

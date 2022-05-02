@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cowk8s/harbor/src/common/models"
+	"github.com/cowk8s/harbor/src/lib/log"
 	"github.com/cowk8s/harbor/src/pkg/usergroup/model"
 )
 
@@ -62,4 +63,36 @@ type AuthenticateHelper interface {
 	SearchGroup(ctx context.Context, groupDN string) (*model.UserGroup, error)
 	// PostAuthenticate Update user information after authenticate, such as Onboard or sync info etc
 	PostAuthenticate(ctx context.Context, u *models.User) error
+}
+
+// Login authenticates user credentials based on setting.
+func Login(ctx context.Context, m models.AuthModel) (*models.User, error) {
+	authMode, err := config.AuthMode(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if authMode == "" || IsSuperUser(ctx, m.Principal) {
+		authMode = common.DBAuth
+	}
+	log.Debug("Current AUTH_MODE is ", authMode)
+
+	authenticator, ok := registry[authMode]
+	if !ok {
+		return nil, fmt.Errorf("unrecognized auth_mode: %s", authMode)
+	}
+	if lock.IsLocked(m.Principal) {
+		log.Debugf("%s is locked due to login failure, login failed", m.Principal)
+		return nil, nil
+	}
+	user, err := authenticator.Authenticate(ctx, m)
+	if err != nil {
+		if _, ok = err.(ErrAuth); ok {
+			log.Debugf("Login failed, locking %s, and sleep for %v", m.Principal, frozenTime)
+			lock.Lock(m.Principal)
+			time.Sleep(frozenTime)
+		}
+		return nil, err
+	}
+	err = authenticator.PostAuthenticate(ctx, user)
+	return user, err
 }

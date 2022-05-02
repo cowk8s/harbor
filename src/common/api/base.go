@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/validation"
+	lib_http "github.com/cowk8s/harbor/src/lib/http"
 	"github.com/cowk8s/harbor/src/lib/log"
 )
 
@@ -124,4 +126,60 @@ func (b *BaseAPI) SetPaginationHeader(total, page, pageSize int64) {
 		}
 		link += fmt.Sprintf("<%s>; rel=\"prev\"", u.String())
 	}
+}
+
+func (b *BaseAPI) SendUnAuthorizedError(err error) {
+	b.RenderError(http.StatusUnauthorized, err.Error())
+}
+
+func (b *BaseAPI) SendConflictError(err error) {
+	b.RenderError(http.StatusConflict, err.Error())
+}
+
+// SendNotFoundError sends not found error to the client.
+func (b *BaseAPI) SendNotFoundError(err error) {
+	b.RenderError(http.StatusNotFound, err.Error())
+}
+
+// SendBadRequestError sends bad request error to the client.
+func (b *BaseAPI) SendBadRequestError(err error) {
+	b.RenderError(http.StatusBadRequest, err.Error())
+}
+
+// SendInternalServerError sends internal server error to the client.
+// Note the detail info of err will not include in the response body.
+// When you send an internal server error  to the client, you expect user to check the log
+// to find out the root cause.
+func (b *BaseAPI) SendInternalServerError(err error) {
+	b.RenderError(http.StatusInternalServerError, err.Error())
+}
+
+// SendForbiddenError sends forbidden error to the client.
+func (b *BaseAPI) SendForbiddenError(err error) {
+	b.RenderError(http.StatusForbidden, err.Error())
+}
+
+// SendPreconditionFailedError sends conflict error to the client.
+func (b *BaseAPI) SendPreconditionFailedError(err error) {
+	b.RenderError(http.StatusPreconditionFailed, err.Error())
+}
+
+// SendStatusServiceUnavailableError sends service unavailable error to the client.
+func (b *BaseAPI) SendStatusServiceUnavailableError(err error) {
+	b.RenderError(http.StatusServiceUnavailable, err.Error())
+}
+
+// SendError return the error defined in OCI spec: https://github.com/opencontainers/distribution-spec/blob/master/spec.md#errors
+// {
+//	"errors:" [{
+//			"code": <error identifier>,
+//			"message": <message describing condition>,
+//			// optional
+//			"detail": <unstructured>
+//		},
+//		...
+//	]
+// }
+func (b *BaseAPI) SendError(err error) {
+	lib_http.SendError(b.Ctx.ResponseWriter, err)
 }

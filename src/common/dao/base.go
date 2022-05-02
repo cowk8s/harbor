@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"sync"
 
+	proModels "github.com/cowk8s/harbor/src/pkg/project/models"
+	userModels "github.com/cowk8s/harbor/src/pkg/user/models"
+
 	"github.com/astaxie/beego/orm"
 	"github.com/cowk8s/harbor/src/common/models"
 	"github.com/cowk8s/harbor/src/lib/log"
@@ -89,10 +92,20 @@ func GetOrmer() orm.Ormer {
 	return globalOrm
 }
 
+// ClearTable is the shortcut for test cases, it should be called only in test cases.
 func ClearTable(table string) error {
 	o := GetOrmer()
 	sql := fmt.Sprintf("delete from %s where 1=1", table)
-	if table == "project_member" {
+	if table == proModels.ProjectTable {
+		sql = fmt.Sprintf("delete from %s where project_id > 1", table)
+	}
+	if table == userModels.UserTable {
+		sql = fmt.Sprintf("delete from %s where user_id > 2", table)
+	}
+	if table == "project_member" { // make sure admin in library
+		sql = fmt.Sprintf("delete from %s where id > 1", table)
+	}
+	if table == "project_metadata" { // make sure library is public
 		sql = fmt.Sprintf("delete from %s where id > 1", table)
 	}
 	_, err := o.Raw(sql).Exec()

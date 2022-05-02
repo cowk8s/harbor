@@ -1,9 +1,14 @@
 package api
 
 import (
+	"errors"
+	"fmt"
+	"net/url"
+	"path"
 	"strings"
 
 	"github.com/cowk8s/harbor/src/chartserver"
+	"github.com/cowk8s/harbor/src/lib/config"
 )
 
 const (
@@ -83,4 +88,23 @@ func (cra *ChartRepositoryAPI) requireAccess(action rbac.Action, subresource ...
 	}
 
 	return cra.RequireProjectAccess(cra.namespace, action, subresource...)
+}
+
+func initializeChartController() (*chartserver.Controller, error) {
+	addr, err := config.GetChartMuseumEndpoint()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the endpoint URL of chart storage server: %s", err.Error())
+	}
+
+	addr = strings.TrimSuffix(addr, "/")
+	url, err := url.Parse(addr)
+	if err != nil {
+		return nil, errors.New("endpoint URL of chart storage server is malformed")
+	}
+
+}
+
+// parseChartVersionFromFilename parse chart and version from file name
+func parseChartVersionFromFilename(filename string) (string, string) {
+	noExt := strings.TrimSuffix(path.Base(filename), fmt.Sprintf(".%s"))
 }
