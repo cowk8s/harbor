@@ -28,8 +28,19 @@ GEN_TLS=
 # version prepare
 # for docker image tag
 VERSIONTAG=dev
+BASEIMAGETAG=dev
+BUILDBASETARGET=db
+IMAGENAMESPACE=goharbor
+BASEIMAGENAMESPACE=goharbor
+# #input true/false only
+PULL_BASE_FROM_DOCKERHUB=true
 
 PREPARE_VERSION_NAME=versions
+
+#versions
+
+# version of registry for pulling the source code
+REGISTRY_SRC_TAG=v2.8.0
 
 define VERSIONS_FOR_PREPARE
 VERSION_TAG: $(VERSIONTAG)
@@ -71,6 +82,8 @@ endif
 # go build command
 GOIMAGEBUILDCMD=/usr/local/go/bin/go build -mod vendor
 
+# makefile
+MAKEFILEPATH_PHOTON=$(MAKEPATH)/photon
 
 RUNCONTAINER=$(DOCKERCMD) run --rm -u $(shell id -u):$(shell id -g) -v $(BUILDPATH):$(BUILDPATH) -w $(BUILDPATH)
 
@@ -111,6 +124,29 @@ compile_core: gen_apis
 	@echo "Done."
 
 compile: check_environment versions_prepare
+
+build:
+# PUSHBASEIMAGE should not be true if BUILD_BASE is not true
+	@if [ "$(PULL_BASE_FROM_DOCKERHUB)" != "true" ] && [ "$(PULL_BASE_FROM_DOCKERHUB)" != "false" ] ; then \
+		echo set PULL_BASE_FROM_DOCKERHUB to true or false.; exit 1; \
+	fi
+	make -f $(MAKEFILEPATH_PHOTON)/Makefile $(BUILDTARGET) \
+	 -e REGISTRYVERSION=$(REGISTRYVERSION) -e REGISTRY_SRC_TAG=$(REGISTRY_SRC_TAG) \
+	 -e VERSIONTAG=$(VERSIONTAG) \
+	 -e BASEIMAGETAG=$(BASEIMAGETAG) \
+	 -e PULL_BASE_FROM_DOCKERHUB=$(PULL_BASE_FROM_DOCKERHUB) 
+
+build_base_docker:
+	@for name in $(BUILDBASETARGET); do \
+		echo $$name ; \
+		sleep 30 ; \
+		if [ $$name == "db" ]; then \
+		    make _build_base_db ; \
+		fi ; \
+	done
+
+_build_base_db:
+	$(DOCKERBUILD) --pull --no-cache -f $(MAKEFILEPATH_PHOTON)/db/Dockerfile.base -t $(BASEIMAGENAMESPACE)/harbor-db-base:$(BASEIMAGETAG) --label base-build-date=$(date +"%Y%m%d") . ; \
 
 install: compile
 
