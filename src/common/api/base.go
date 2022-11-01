@@ -32,6 +32,7 @@ func (b *BaseAPI) Context() context.Context {
 	return b.Ctx.Request.Context()
 }
 
+// GetStringFromPath gets the param from path and returns it as string
 func (b *BaseAPI) GetStringFromPath(key string) string {
 	return b.Ctx.Input.Param(key)
 }
@@ -42,18 +43,25 @@ func (b *BaseAPI) GetInt64FromPath(key string) (int64, error) {
 	return strconv.ParseInt(value, 10, 64)
 }
 
+// ParamExistsInPath returns true when param exists in the path
 func (b *BaseAPI) ParamExistsInPath(key string) bool {
 	return b.GetStringFromPath(key) != ""
 }
 
+// Render returns nil as it won't render template
 func (b *BaseAPI) Render() error {
 	return nil
 }
 
+// RenderError provides shortcut to render http error
 func (b *BaseAPI) RenderError(code int, text string) {
-
+	lib_http.SendError(b.Ctx.ResponseWriter, &commonhttp.Error{
+		Code:    code,
+		Message: text,
+	})
 }
 
+// DecodeJSONReq decodes a json request
 func (b *BaseAPI) DecodeJSONReq(v interface{}) error {
 	err := json.Unmarshal(b.Ctx.Input.CopyBody(1<<32), v)
 	if err != nil {
@@ -64,6 +72,7 @@ func (b *BaseAPI) DecodeJSONReq(v interface{}) error {
 	return nil
 }
 
+// Validate validates v if it implements interface validation.ValidFormer
 func (b *BaseAPI) Validate(v interface{}) (bool, error) {
 	validator := validation.Validation{}
 	isValid, err := validator.Valid(v)
@@ -82,6 +91,7 @@ func (b *BaseAPI) Validate(v interface{}) (bool, error) {
 	return true, nil
 }
 
+// DecodeJSONReqAndValidate does both decoding and validation
 func (b *BaseAPI) DecodeJSONReqAndValidate(v interface{}) (bool, error) {
 	if err := b.DecodeJSONReq(v); err != nil {
 		return false, err
@@ -89,6 +99,7 @@ func (b *BaseAPI) DecodeJSONReqAndValidate(v interface{}) (bool, error) {
 	return b.Validate(v)
 }
 
+// Redirect does redirection to resource URI with http header status code.
 func (b *BaseAPI) Redirect(statusCode int, resouceID string) {
 	requestURI := b.Ctx.Request.RequestURI
 	resourceURI := requestURI + "/" + resouceID
@@ -96,6 +107,7 @@ func (b *BaseAPI) Redirect(statusCode int, resouceID string) {
 	b.Ctx.Redirect(statusCode, resourceURI)
 }
 
+// GetIDFromURL checks the ID in request URL
 func (b *BaseAPI) GetIDFromURL() (int64, error) {
 	idStr := b.Ctx.Input.Param(":id")
 	if len(idStr) == 0 {
@@ -110,6 +122,7 @@ func (b *BaseAPI) GetIDFromURL() (int64, error) {
 	return id, nil
 }
 
+// SetPaginationHeader set"Link" and "X-Total-Count" header for pagination request
 func (b *BaseAPI) SetPaginationHeader(total, page, pageSize int64) {
 	b.Ctx.ResponseWriter.Header().Set("X-Total-Count", strconv.FormatInt(total, 10))
 
@@ -121,17 +134,66 @@ func (b *BaseAPI) SetPaginationHeader(total, page, pageSize int64) {
 		q := u.Query()
 		q.Set("page", strconv.FormatInt(page-1, 10))
 		u.RawQuery = q.Encode()
+		link += fmt.Sprintf("<%s>; rel=\"prev\"", u.String())
+	}
+
+	// SetPaginationHeader set next link
+	if pageSize*page < total {
+		u := *(b.Ctx.Request.URL)
+		q := u.Query()
+		q.Set("page", strconv.FormatInt(page+1, 10))
+		u.RawQuery = q.Encode()
 		if len(link) != 0 {
 			link += ", "
 		}
-		link += fmt.Sprintf("<%s>; rel=\"prev\"", u.String())
+		link += fmt.Sprintf("<%s>; rel=\"next\"", u.String())
+	}
+
+	if len(link) != 0 {
+		b.Ctx.ResponseWriter.Header().Set("Link", link)
 	}
 }
 
+// GetPaginationParams ...
+func (b *BaseAPI) GetPaginationParams() (page, pageSize int64, err error) {
+	page, err = b.GetInt64("page", 1)
+	if err != nil || page <= 0 {
+		return 0, 0, errors.New("invalid page")
+	}
+
+	pageSize, err = b.GetInt64("page_size", defaultPageSize)
+	if err != nil || pageSize <= 0 {
+		return 0, 0, errors.New("invalid page_size")
+	}
+
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+		log.Debugf("the parameter page_size %d exceeds the max %d, set it to max", pageSize, maxPageSize)
+	}
+
+	return page, pageSize, nil
+}
+
+// ParseAndHandleError : if the err is an instance of utils/error.Error,
+// return the status code and the detail message contained in err, otherwise
+// return 500
+func (b *BaseAPI) ParseAndHandleError(text string, err error) {
+	if err == nil {
+		return
+	}
+	if e, ok := err.(*commonhttp.Error); ok {
+		b.RenderError(e.Code, fmt.Sprintf("%s: %s", text, e.Message))
+		return
+	}
+	b.SendInternalServerError(fmt.Errorf("%s: %v", text, err))
+}
+
+// SendUnAuthorizedError sends unauthorized error to the client.
 func (b *BaseAPI) SendUnAuthorizedError(err error) {
 	b.RenderError(http.StatusUnauthorized, err.Error())
 }
 
+// SendConflictError sends conflict error to the client.
 func (b *BaseAPI) SendConflictError(err error) {
 	b.RenderError(http.StatusConflict, err.Error())
 }
