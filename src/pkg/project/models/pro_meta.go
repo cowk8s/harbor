@@ -12,10 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package version
+package models
 
-// ReleaseVersion is the content of VERSION, which contains the target release version, like v1.10.0
-var ReleaseVersion string
-
-// GitCommit is the git commit id with length of 8 characters
-var GitCommit string
+// keys of project metadata and severity values
+const (
+	ProMetaPublic                   = "public"
+	ProMetaEnableContentTrust       = "enable_content_trust"
+	ProMetaEnableContentTrustCosign = "enable_content_trust_cosign"
+	ProMetaPreventVul               = "prevent_vul" // prevent vulnerable images from being pulled
+	ProMetaSeverity                 = "severity"
+	ProMetaAutoScan                 = "auto_scan"
+	ProMetaReuseSysCVEAllowlist     = "reuse_sys_cve_allowlist"
+)

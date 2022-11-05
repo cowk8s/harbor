@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cowk8s/harbor/src/lib/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/cowk8s/harbor/src/lib/log"
 )
 
 const (

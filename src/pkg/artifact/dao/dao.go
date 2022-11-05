@@ -1,3 +1,17 @@
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package dao
 
 import (
@@ -6,7 +20,8 @@ import (
 	"strings"
 	"time"
 
-	beegoorm "github.com/astaxie/beego/orm"
+	beegoorm "github.com/beego/beego/orm"
+
 	"github.com/cowk8s/harbor/src/lib/errors"
 	"github.com/cowk8s/harbor/src/lib/orm"
 	"github.com/cowk8s/harbor/src/lib/q"
@@ -89,6 +104,7 @@ func (d *dao) List(ctx context.Context, query *q.Query) ([]*Artifact, error) {
 	if _, err = qs.All(&artifacts); err != nil {
 		return nil, err
 	}
+
 	return artifacts, nil
 }
 func (d *dao) Get(ctx context.Context, id int64) (*Artifact, error) {
@@ -279,6 +295,10 @@ func querySetter(ctx context.Context, query *q.Query) (beegoorm.QuerySeter, erro
 	if err != nil {
 		return nil, err
 	}
+	qs, err = setAccessoryQuery(qs, query)
+	if err != nil {
+		return nil, err
+	}
 	return qs, nil
 }
 
@@ -388,5 +408,14 @@ func setLabelQuery(qs beegoorm.QuerySeter, query *q.Query) (beegoorm.QuerySeter,
 		collections = append(collections, fmt.Sprintf(`SELECT artifact_id FROM label_reference WHERE label_id=%d`, labelID))
 	}
 	qs = qs.FilterRaw("id", fmt.Sprintf(`IN (%s)`, strings.Join(collections, " INTERSECT ")))
+	return qs, nil
+}
+
+// filter out the accessory for results
+func setAccessoryQuery(qs beegoorm.QuerySeter, query *q.Query) (beegoorm.QuerySeter, error) {
+	if query == nil {
+		return qs, nil
+	}
+	qs = qs.FilterRaw("id", "not in (select artifact_id from artifact_accessory)")
 	return qs, nil
 }

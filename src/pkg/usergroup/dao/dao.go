@@ -1,9 +1,25 @@
+//  Copyright Project Harbor Authors
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
 package dao
 
 import (
 	"context"
 	"time"
 
+	"github.com/cowk8s/harbor/src/common"
+	"github.com/cowk8s/harbor/src/common/utils"
 	"github.com/cowk8s/harbor/src/lib/errors"
 	"github.com/cowk8s/harbor/src/lib/log"
 	"github.com/cowk8s/harbor/src/lib/orm"
@@ -13,7 +29,7 @@ import (
 
 func init() {
 	orm.RegisterModel(
-		new(model)
+		new(model.UserGroup),
 	)
 }
 
@@ -46,6 +62,7 @@ func New() DAO {
 // ErrGroupNameDup ...
 var ErrGroupNameDup = errors.ConflictError(nil).WithMessage("duplicated user group name")
 
+// Add - Add User Group
 func (d *dao) Add(ctx context.Context, userGroup model.UserGroup) (int, error) {
 	query := q.New(q.KeyWords{"GroupName": userGroup.GroupName, "GroupType": common.HTTPGroupType})
 	userGroupList, err := d.Query(ctx, query)
@@ -59,7 +76,7 @@ func (d *dao) Add(ctx context.Context, userGroup model.UserGroup) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	sql := "insert into user_group (group_name, group_type, ldap_group_dn, creation_time, update_time) value (?, ?, ?, ?, ?) RETURNING id"
+	sql := "insert into user_group (group_name, group_type, ldap_group_dn, creation_time, update_time) values (?, ?, ?, ?, ?) RETURNING id"
 	var id int
 	now := time.Now()
 
@@ -71,6 +88,7 @@ func (d *dao) Add(ctx context.Context, userGroup model.UserGroup) (int, error) {
 	return id, nil
 }
 
+// Query - Query User Group
 func (d *dao) Query(ctx context.Context, query *q.Query) ([]*model.UserGroup, error) {
 	query = q.MustClone(query)
 	qs, err := orm.QuerySetter(ctx, &model.UserGroup{}, query)
@@ -84,6 +102,7 @@ func (d *dao) Query(ctx context.Context, query *q.Query) ([]*model.UserGroup, er
 	return usergroups, nil
 }
 
+// Get ...
 func (d *dao) Get(ctx context.Context, id int) (*model.UserGroup, error) {
 	userGroupList, err := d.Query(ctx, q.New(q.KeyWords{"ID": id}))
 	if err != nil {
@@ -95,15 +114,16 @@ func (d *dao) Get(ctx context.Context, id int) (*model.UserGroup, error) {
 	return nil, nil
 }
 
+// Delete ...
 func (d *dao) Delete(ctx context.Context, id int) error {
 	userGroup := model.UserGroup{ID: id}
 	o, err := orm.FromContext(ctx)
 	if err != nil {
 		return err
 	}
-	_, err := o.Delete(&userGroup)
+	_, err = o.Delete(&userGroup)
 	if err == nil {
-		// s
+		// Delete all related project members
 		sql := `delete from project_member where entity_id = ? and entity_type='g'`
 		_, err := o.Raw(sql, id).Exec()
 		if err != nil {
@@ -113,13 +133,55 @@ func (d *dao) Delete(ctx context.Context, id int) error {
 	return err
 }
 
+// UpdateName ...
 func (d *dao) UpdateName(ctx context.Context, id int, groupName string) error {
 	log.Debugf("Updating user_group with id:%v, name:%v", id, groupName)
 	o, err := orm.FromContext(ctx)
 	if err != nil {
 		return err
 	}
-	sql := "update user_group set group_name = ? where id = ? "
+	sql := "update user_group set group_name = ? where id =  ? "
 	_, err = o.Raw(sql, groupName, id).Exec()
 	return err
+}
+
+// ReadOrCreate read or create user group
+func (d *dao) ReadOrCreate(ctx context.Context, g *model.UserGroup, keyAttribute string, combinedKeyAttributes ...string) (bool, int64, error) {
+	o, err := orm.FromContext(ctx)
+	if err != nil {
+		return false, 0, err
+	}
+	return o.ReadOrCreate(g, keyAttribute, combinedKeyAttributes...)
+}
+
+func (d *dao) onBoardCommonUserGroup(ctx context.Context, g *model.UserGroup, keyAttribute string, combinedKeyAttributes ...string) error {
+	g.LdapGroupDN = utils.TrimLower(g.LdapGroupDN)
+	created, ID, err := d.ReadOrCreate(ctx, g, keyAttribute, combinedKeyAttributes...)
+	if err != nil {
+		return err
+	}
+
+	if created {
+		g.ID = int(ID)
+	} else {
+		prevGroup, err := d.Get(ctx, int(ID))
+		if err != nil {
+			return err
+		}
+		g.ID = prevGroup.ID
+		g.GroupName = prevGroup.GroupName
+		g.GroupType = prevGroup.GroupType
+		g.LdapGroupDN = prevGroup.LdapGroupDN
+	}
+
+	return nil
+}
+
+func (d *dao) Count(ctx context.Context, query *q.Query) (int64, error) {
+	query = q.MustClone(query)
+	qs, err := orm.QuerySetterForCount(ctx, &model.UserGroup{}, query)
+	if err != nil {
+		return 0, err
+	}
+	return qs.Count()
 }

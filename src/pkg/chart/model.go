@@ -1,16 +1,23 @@
 package chart
 
-import "time"
+import (
+	"time"
+
+	helm_chart "helm.sh/helm/v3/pkg/chart"
+)
 
 // VersionDetails keeps the detailed data info of the chart version
 type VersionDetails struct {
-	Values map[string]interface{} `json:"values"`
-	Files  map[string]string      `json:"files"`
+	Dependencies []*helm_chart.Dependency `json:"dependencies"`
+	Values       map[string]interface{}   `json:"values"`
+	Files        map[string]string        `json:"files"`
+	Security     *SecurityReport          `json:"security"`
 }
 
 // SecurityReport keeps the info related with security
 // e.g.: digital signature, vulnerability scanning etc.
 type SecurityReport struct {
+	Signature *DigitalSignature `json:"signature"`
 }
 
 // DigitalSignature used to indicate if the chart has been signed

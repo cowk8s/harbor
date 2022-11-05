@@ -21,11 +21,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/astaxie/beego/orm"
+	"github.com/beego/beego/orm"
 
 	"github.com/cowk8s/harbor/src/lib/log"
-	//tracelib "github.com/cowk8s/harbor/src/lib/trace"
+	tracelib "github.com/cowk8s/harbor/src/lib/trace"
 )
 
 // NewCondition alias function of orm.NewCondition
@@ -49,6 +50,14 @@ func RegisterModel(models ...interface{}) {
 }
 
 type ormKey struct{}
+
+// valueOnlyContext aims to only copy value from parent context, but no other
+// linkage of parent like cancelation.
+type valueOnlyContext struct{ context.Context }
+
+func (valueOnlyContext) Deadline() (time.Time, bool) { return time.Time{}, false }
+func (valueOnlyContext) Done() <-chan struct{}       { return nil }
+func (valueOnlyContext) Err() error                  { return nil }
 
 const (
 	tracerName               = "goharbor/harbor/src/lib/orm"
@@ -88,6 +97,12 @@ func Clone(ctx context.Context) context.Context {
 	return NewContext(ctx, orm.NewOrm())
 }
 
+// Copy returns new context with orm and value from parent context but no
+// linkage of parent.
+func Copy(ctx context.Context) context.Context {
+	return NewContext(valueOnlyContext{ctx}, orm.NewOrm())
+}
+
 type operationNameKey struct{}
 
 // SetTransactionOpName sets the transaction operation name
@@ -113,40 +128,34 @@ func GetTransactionOpNameFromContext(ctx context.Context) string {
 // WithTransaction a decorator which make f run in transaction
 func WithTransaction(f func(ctx context.Context) error) func(ctx context.Context) error {
 	return func(ctx context.Context) error {
-		//cx, span := tracelib.StartTrace(ctx, tracerName, GetTransactionOpNameFromContext(ctx))
-		//defer span.End()
+		cx, span := tracelib.StartTrace(ctx, tracerName, GetTransactionOpNameFromContext(ctx))
+		defer span.End()
 		o, err := FromContext(ctx)
 		if err != nil {
-			//tracelib.RecordError(span, err, "get orm from ctx failed")
+			tracelib.RecordError(span, err, "get orm from ctx failed")
 			return err
 		}
 
 		tx := ormerTx{Ormer: o}
 		if err := tx.Begin(); err != nil {
-			//tracelib.RecordError(span, err, "begin transaction failed")
+			tracelib.RecordError(span, err, "begin transaction failed")
 			log.Errorf("begin transaction failed: %v", err)
 			return err
 		}
 
-		if e := tx.Rollback(); e != nil {
-			//tracelib.RecordError(span, e, "rollback transaction failed")
-			log.Errorf("rollback transaction failed: %v", e)
-			return e
+		if err := f(cx); err != nil {
+			span.AddEvent("rollback transaction")
+			if e := tx.Rollback(); e != nil {
+				tracelib.RecordError(span, e, "rollback transaction failed")
+				log.Errorf("rollback transaction failed: %v", e)
+				return e
+			}
+
+			return err
 		}
-
-		// if err := f(cx); err != nil {
-		// 	span.AddEvent("rollback transaction")
-		// 	if e := tx.Rollback(); e != nil {
-		// 		tracelib.RecordError(span, e, "rollback transaction failed")
-		// 		log.Errorf("rollback transaction failed: %v", e)
-		// 		return e
-		// 	}
-
-		// 	return err
-		// }
-		//span.AddEvent("commit transaction")
+		span.AddEvent("commit transaction")
 		if err := tx.Commit(); err != nil {
-			//tracelib.RecordError(span, err, "commit transaction failed")
+			tracelib.RecordError(span, err, "commit transaction failed")
 			log.Errorf("commit transaction failed: %v", err)
 			return err
 		}
@@ -261,8 +270,8 @@ func ParamPlaceholderForIn(n int) string {
 // to DDL and other statements that do not accept parameters) to be used as part
 // of an SQL statement.  For example:
 //
-//    exp_date := pq.QuoteLiteral("2023-01-05 15:00:00Z")
-//    err := db.Exec(fmt.Sprintf("CREATE ROLE my_user VALID UNTIL %s", exp_date))
+//	exp_date := pq.QuoteLiteral("2023-01-05 15:00:00Z")
+//	err := db.Exec(fmt.Sprintf("CREATE ROLE my_user VALID UNTIL %s", exp_date))
 //
 // Any single quotes in name will be escaped. Any backslashes (i.e. "\") will be
 // replaced by two backslashes (i.e. "\\") and the C-style escape identifier
