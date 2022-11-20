@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	beego_orm "github.com/astaxie/beego/orm"
+	beego_orm "github.com/beego/beego/orm"
 )
 
 func init() {

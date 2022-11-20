@@ -14,17 +14,19 @@
 
 package selector
 
-// Result keeps the action result
-type Result struct {
-	Target *Candidate `json:"target"`
-	// nil error means success
-	Error error `json:"error"`
+// Selector is used to filter the inputting list
+type Selector interface {
+	// Select the matched ones
+	//
+	//  Arguments:
+	//    artifacts []*Candidate : candidates for matching
+	//
+	//  Returns:
+	//    []*Candidate : matched candidates
+	Select(artifacts []*Candidate) ([]*Candidate, error)
 }
 
-// ImmutableError ...
-type ImmutableError struct {
-}
-
-func (e *ImmutableError) Error() string {
-	return "Immutable tag"
-}
+// Factory is factory method to return a selector implementation
+// Pattern can be any type of data.
+// TODO: 'extras' can also be an optional interface{} to accept more complicated data.
+type Factory func(decoration string, pattern interface{}, extras string) Selector
