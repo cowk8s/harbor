@@ -20,9 +20,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/beego/beego/orm"
+	"github.com/beego/beego/v2/client/orm"
 
-	"github.com/cowk8s/harbor/src/lib/q"
+	"github.com/goharbor/harbor/src/lib/q"
 )
 
 // QuerySetter generates the query setter according to the provided model and query.

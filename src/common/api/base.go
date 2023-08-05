@@ -1,3 +1,17 @@
+// Copyright Project Harbor Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package api
 
 import (
@@ -8,10 +22,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/validation"
-	lib_http "github.com/cowk8s/harbor/src/lib/http"
-	"github.com/cowk8s/harbor/src/lib/log"
+	"github.com/beego/beego/v2/core/validation"
+	"github.com/beego/beego/v2/server/web"
+
+	commonhttp "github.com/goharbor/harbor/src/common/http"
+	lib_http "github.com/goharbor/harbor/src/lib/http"
+	"github.com/goharbor/harbor/src/lib/log"
 )
 
 const (
@@ -24,7 +40,7 @@ const (
 
 // BaseAPI wraps common methods for controllers to host API
 type BaseAPI struct {
-	beego.Controller
+	web.Controller
 }
 
 // Context returns the context.Context from http.Request
@@ -63,10 +79,10 @@ func (b *BaseAPI) RenderError(code int, text string) {
 
 // DecodeJSONReq decodes a json request
 func (b *BaseAPI) DecodeJSONReq(v interface{}) error {
-	err := json.Unmarshal(b.Ctx.Input.CopyBody(1<<32), v)
+	err := json.Unmarshal(b.Ctx.Input.CopyBody(1<<35), v)
 	if err != nil {
 		log.Errorf("Error while decoding the json request, error: %v, %v",
-			err, string(b.Ctx.Input.CopyBody(1 << 32)[:]))
+			err, string(b.Ctx.Input.CopyBody(1 << 35)[:]))
 		return errors.New("invalid json request")
 	}
 	return nil
@@ -232,16 +248,17 @@ func (b *BaseAPI) SendStatusServiceUnavailableError(err error) {
 }
 
 // SendError return the error defined in OCI spec: https://github.com/opencontainers/distribution-spec/blob/master/spec.md#errors
-// {
-//	"errors:" [{
-//			"code": <error identifier>,
-//			"message": <message describing condition>,
-//			// optional
-//			"detail": <unstructured>
-//		},
-//		...
-//	]
-// }
+//
+//	{
+//		"errors:" [{
+//				"code": <error identifier>,
+//				"message": <message describing condition>,
+//				// optional
+//				"detail": <unstructured>
+//			},
+//			...
+//		]
+//	}
 func (b *BaseAPI) SendError(err error) {
 	lib_http.SendError(b.Ctx.ResponseWriter, err)
 }
