@@ -35,7 +35,45 @@ const (
 
 // const resource variables
 const (
-	ResourceAll           = Resource("*")             // resource match any other resources
-	ResourceConfiguration = Resource("configuration") // project configuration compatible for portal only
-	ResourceLabel         = Resource("label")
+	ResourceAll                = Resource("*")             // resource match any other resources
+	ResourceConfiguration      = Resource("configuration") // project configuration compatible for portal only
+	ResourceLabel              = Resource("label")
+	ResourceLog                = Resource("log")
+	ResourceLdapUser           = Resource("ldap-user")
+	ResourceMember             = Resource("member")
+	ResourceMetadata           = Resource("metadata")
+	ResourceQuota              = Resource("quota")
+	ResourceRepository         = Resource("repository")
+	ResourceTagRetention       = Resource("tag-retention")
+	ResourceImmutableTag       = Resource("immutable-tag")
+	ResourceRobot              = Resource("robot")
+	ResourceNotificationPolicy = Resource("notification-policy")
+	ResourceScan               = Resource("scan")
+	ResourceScanner            = Resource("scanner")
+	ResourceArtifact           = Resource("artifact")
+	ResourceTag                = Resource("tag")
+	ResourceAccessory          = Resource("accessory")
+	ResourceArtifactAddition   = Resource("artifact-addition")
+	ResourceArtifactLabel      = Resource("artifact-label")
+	ResourcePreatPolicy        = Resource("preheat-policy")
+	ResourcePreatInstance      = Resource("preheat-instance")
+	ResourceSelf               = Resource("") // subresource for self
+
+	ResourceAuditLog           = Resource("audit-log")
+	ResourceCatalog            = Resource("catalog")
+	ResourceProject            = Resource("project")
+	ResourceUser               = Resource("user")
+	ResourceUserGroup          = Resource("user-group")
+	ResourceRegistry           = Resource("registry")
+	ResourceReplication        = Resource("replication")
+	ResourceDistribution       = Resource("distribution")
+	ResourceGarbageCollection  = Resource("garbage-collection")
+	ResourceReplicationAdapter = Resource("replication-adapter")
+	ResourceReplicationPolicy  = Resource("replication-policy")
+	ResourceScanAll            = Resource("scan-all")
+	ResourceSystemVolumes      = Resource("system-volumes")
+	ResourcePurgeAuditLog      = Resource("purge-audit")
+	ResourceExportCVE          = Resource("export-cve")
+	ResourceJobServiceMonitor  = Resource("jobservice-monitor")
+	ResourceSecurityHub        = Resource("security-hub")
 )
